@@ -77,7 +77,7 @@ public class HomeFragment extends Fragment {
                         "if (usernameField && passwordField) {" +
                         "usernameField.value = usernames[index];" +
                         "passwordField.value = passwords[index];" +
-                        "document.querySelector('.buttonrow').click();" +
+                        "submitRequest();" +  // Simulate clicking the login button
                         "setTimeout(checkLogin, 2000);" +
                         "} else {" +
                         "Android.onLoginFailed();" +
@@ -85,11 +85,15 @@ public class HomeFragment extends Fragment {
                         "}" +
 
                         "function checkLogin() {" +
-                        "if (document.getElementById('success-element-id') !== null) {" +
+                        "var successMessage = document.getElementById('signin-caption').innerText;" +
+                        "var errorMessage = document.getElementById('statusmessage').innerText;" +
+                        "if (successMessage.includes('You are signed in as')) {" +
                         "Android.onLoginSuccess();" +
-                        "} else {" +
+                        "} else if (errorMessage.includes('Login failed')) {" +
                         "index++;" +
                         "tryLogin();" +
+                        "} else {" +
+                        "setTimeout(checkLogin, 2000); " +  // Wait a bit more due to async delays
                         "}" +
                         "}" +
 
@@ -98,7 +102,6 @@ public class HomeFragment extends Fragment {
 
         view.evaluateJavascript(jsCode, null);
     }
-
     private class CustomWebViewClient extends WebViewClient {
         @Override
         public void onPageFinished(WebView view, String url) {
