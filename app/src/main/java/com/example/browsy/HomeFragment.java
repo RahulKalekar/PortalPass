@@ -1,5 +1,6 @@
 package com.example.browsy;
 
+
 import android.net.http.SslError;
 import android.os.Bundle;
 import android.util.Log;
@@ -15,15 +16,20 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import java.util.List;
+
 public class HomeFragment extends Fragment {
 
     private WebView webView;
+    private CredentialsDatabaseHelper dbHelper;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
+
+        dbHelper = new CredentialsDatabaseHelper(getContext());
 
         webView = view.findViewById(R.id.webView);
         webView.getSettings().setJavaScriptEnabled(true);
@@ -38,11 +44,22 @@ public class HomeFragment extends Fragment {
     }
 
     private void injectJavaScript(WebView view) {
-        String[] usernames = {"PESUPLC03", "PESUPLC04", "PESUPLC05"};
-        String[] passwords = {"pesuplc03", "pesuplc04", "pesuplc05"};
+        List<Credential> credentials = dbHelper.getAllCredentials();
 
-        String usernamesJsArray = arrayToJsArray(usernames);
-        String passwordsJsArray = arrayToJsArray(passwords);
+        StringBuilder usernamesJsArray = new StringBuilder("[");
+        StringBuilder passwordsJsArray = new StringBuilder("[");
+
+        for (int i = 0; i < credentials.size(); i++) {
+            Credential credential = credentials.get(i);
+            usernamesJsArray.append("\"").append(credential.getUsername()).append("\"");
+            passwordsJsArray.append("\"").append(credential.getPassword()).append("\"");
+            if (i < credentials.size() - 1) {
+                usernamesJsArray.append(",");
+                passwordsJsArray.append(",");
+            }
+        }
+        usernamesJsArray.append("]");
+        passwordsJsArray.append("]");
 
         String jsCode = String.format(
                 "(function() {" +
@@ -77,21 +94,9 @@ public class HomeFragment extends Fragment {
                         "}" +
 
                         "tryLogin();" +
-                        "})()", usernamesJsArray, passwordsJsArray);
+                        "})()", usernamesJsArray.toString(), passwordsJsArray.toString());
 
         view.evaluateJavascript(jsCode, null);
-    }
-
-    private String arrayToJsArray(String[] array) {
-        StringBuilder jsArray = new StringBuilder("[");
-        for (int i = 0; i < array.length; i++) {
-            jsArray.append("\"").append(array[i]).append("\"");
-            if (i < array.length - 1) {
-                jsArray.append(",");
-            }
-        }
-        jsArray.append("]");
-        return jsArray.toString();
     }
 
     private class CustomWebViewClient extends WebViewClient {
